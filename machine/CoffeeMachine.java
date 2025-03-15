@@ -6,40 +6,41 @@ public class CoffeeMachine {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         State state = new State();
-        state.print();
-        System.out.println();
-
-        System.out.println("Write action (buy, fill, take):");
-        String action = scanner.nextLine();
-        switch (action) {
-            case "buy" -> {
-                System.out.println("What do you want to buy? 1 - espresso, 2 - latte, 3 - cappuccino:");
-                int choice = scanner.nextInt();
-                switch (choice) {
-                    case 1 -> state.sellAnEspresso();
-                    case 2 -> state.sellALatte();
-                    case 3 -> state.sellACappuccino();
+        mainLoop:
+        while (true) {
+            System.out.println("Write action (buy, fill, take, remaining, exit):");
+            String action = scanner.nextLine();
+            switch (action) {
+                case "buy" -> {
+                    System.out.println("What do you want to buy? 1 - espresso, 2 - latte, 3 - cappuccino:");
+                    String choice = scanner.nextLine();
+                    if (choice.equals("back")) {
+                        continue;
+                    }
+                    state.sellACoffee(Integer.parseInt(choice));
+                }
+                case "fill" -> {
+                    System.out.println("Write how many ml of water you want to add:");
+                    int water = scanner.nextInt();
+                    System.out.println("Write how many ml of milk you want to add:");
+                    int milk = scanner.nextInt();
+                    System.out.println("Write how many grams of coffee beans you want to add:");
+                    int coffee = scanner.nextInt();
+                    System.out.println("Write how many disposable cups you want to add:");
+                    int cups = scanner.nextInt();
+                    state.fill(water, milk, coffee, cups);
+                }
+                case "take" -> {
+                    int amount = state.takeCashOut();
+                    System.out.println("I gave you $" + amount);
+                }
+                case "remaining" -> state.print();
+                case "exit" -> {
+                    break mainLoop;
                 }
             }
-            case "fill" -> {
-                System.out.println("Write how many ml of water you want to add:");
-                int water = scanner.nextInt();
-                System.out.println("Write how many ml of milk you want to add:");
-                int milk = scanner.nextInt();
-                System.out.println("Write how many grams of coffee beans you want to add:");
-                int coffee = scanner.nextInt();
-                System.out.println("Write how many disposable cups you want to add:");
-                int cups = scanner.nextInt();
-                state.fill(water, milk, coffee, cups);
-            }
-            case "take" -> {
-                int amount = state.takeCashOut();
-                System.out.println("I gave you $" + amount);
-            }
         }
-
-        System.out.println();
-        state.print();
+        scanner.close();
     }
 }
 
@@ -67,27 +68,40 @@ class State {
         System.out.println("$" + this.dollarsOfMoney + " of money");
     }
 
-    protected void sellAnEspresso() {
-        this.mlsOfWater -= 250;
-        this.gsOfCoffee -= 16;
-        this.numberOfCups -= 1;
-        this.dollarsOfMoney += 4;
+    protected void sellACoffee(int coffeeType) {
+        Coffee coffee = switch (coffeeType) {
+            case 1 -> new Espresso();
+            case 2 -> new Latte();
+            case 3 -> new Cappuccino();
+            default -> throw new IllegalStateException("Unexpected value: " + coffeeType);
+        };
+
+        if (this.mlsOfWater < coffee.requiredWater) {
+            System.out.println("Sorry, not enough water!");
+            return;
+        }
+        if (this.mlsOfMilk < coffee.requiredMilk) {
+            System.out.println("Sorry, not enough milk!");
+            return;
+        }
+        if (this.gsOfCoffee < coffee.requiredCoffee) {
+            System.out.println("Sorry, not enough coffee!");
+            return;
+        }
+        if (this.numberOfCups < 1) {
+            System.out.println("Sorry, not enough cups!");
+            return;
+        }
+        System.out.println("I have enough resources, making you a coffee!");
+        this.sell(coffee);
     }
 
-    protected void sellALatte() {
-        this.mlsOfWater -= 350;
-        this.mlsOfMilk -= 75;
-        this.gsOfCoffee -= 20;
+    protected void sell(Coffee coffee) {
+        this.mlsOfWater -= coffee.requiredWater;
+        this.mlsOfMilk -= coffee.requiredMilk;
+        this.gsOfCoffee -= coffee.requiredCoffee;
         this.numberOfCups -= 1;
-        this.dollarsOfMoney += 7;
-    }
-
-    protected void sellACappuccino() {
-        this.mlsOfWater -= 200;
-        this.mlsOfMilk -= 100;
-        this.gsOfCoffee -= 12;
-        this.numberOfCups -= 1;
-        this.dollarsOfMoney += 6;
+        this.dollarsOfMoney += coffee.cost;
     }
 
     protected void fill(int water, int milk, int coffee, int cups) {
